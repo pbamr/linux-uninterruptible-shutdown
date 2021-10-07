@@ -157,4 +157,5 @@ You can remove then "printk" Messages.
 
 
 make bzImage
+(x86..)
 
