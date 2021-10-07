@@ -136,6 +136,8 @@ arch/mips/kernel/syscalls/syscall_o32.tbl
 ------------------------------------------------------------------------------------------------
 expample:
 
+choose version: shutdown_timer_2.c or shutdown_timer_3.c -> shutdown_timer.c
+
 copy to:
 shutdown_timer.c	-> kernel/time/shutdown_timer.c
 stat_shutdown_timer.c	-> kernel/time/stat_shutdown_timer.c
