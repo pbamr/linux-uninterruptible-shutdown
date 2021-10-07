@@ -340,6 +340,12 @@ static long init_shutdown_timer(s64 halt_time_sec)
 static long set_shutdown_timer(s64 halt_time_sec)
 {
 
+	/* Active? */
+	if (shutdown_flag == false) {
+		printk_error_shutdown_timer();
+		return(-1);
+	}
+
 	/* not lower 60 sec */
 	if (halt_time_sec < 60) {
 		printk_error_shutdown_timer();
