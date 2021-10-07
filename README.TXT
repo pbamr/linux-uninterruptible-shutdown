@@ -152,3 +152,7 @@ or other?
 
 
 You can remove then "printk" Messages.
+
+
+make bzImage
+
