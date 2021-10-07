@@ -18,11 +18,6 @@
 /*Important: INTEL: 32Bit Linux Long=32Bit. INTEL: 64Bit Linux Long=64Bit */
 
 
-#define SEQ_PRINT
-
-#ifdef SEQ_PRINT
-
-
 
 #include <linux/fs.h>
 #include <linux/kernel.h>
@@ -156,4 +151,3 @@ static int __init init_shutdown_timer_proc_show(void)
 }
 fs_initcall(init_shutdown_timer_proc_show);
 
-#endif
