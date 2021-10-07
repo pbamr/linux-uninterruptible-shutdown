@@ -53,7 +53,7 @@ int TryStrToInt64 (char *STRING_NUMBER, s64 *NUMBER, int ZAHLEN_SYSTEM) {
 		else return(0);
 	}
 
-	/* Warning gcc: -922337203685477588 */
+	/* Warning gcc: -9223372036854775808 */
 	if (*NUMBER + 1 == -9223372036854775807) {
 		if (strncmp(STRING_NUMBER, "-9223372036854775808", 20) != 0) return(-1);
 		else return(0);
