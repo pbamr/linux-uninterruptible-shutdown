@@ -65,46 +65,51 @@ int TryStrToInt64 (char *STRING_NUMBER, s64 *NUMBER) {
 
 /* BYTE ORDER SAVE? */
 /* Not check. */
-u32 u64_hi(u64 register value) {
+u32 u64_hi(register u64 value) {
 	register u32 RET_VAL;
 
 	RET_VAL = value >> 32;
 	return(RET_VAL);
 }
 
-u32 u64_lo(u64 register value) {
+u32 u64_lo(register u64 value) {
 	register u32 RET_VAL;
 
-	RET_VAL = (u32) value;
+	value = value << 32;
+	RET_VAL = value >> 32;
+
 	return(RET_VAL);
 }
 
-u16 u32_hi(u32 register value) {
+u16 u32_hi(register u32 value) {
 	register u16 RET_VAL;
-	
+
 	RET_VAL = value >> 16;
 	return(RET_VAL);
-}
+} 
 
-u16 u32_lo(u32 register value) {
+u16 u32_lo(register u32 value) {
 	register u16 RET_VAL;
-	
-	RET_VAL = (u16) value;
+
+	value = value << 16;
+	RET_VAL = value >> 16;
+
 	return(RET_VAL);
 }
 
-u8 u16_hi(u16 register value) {
+u8 u16_hi(register u16 value) {
 	register u8 RET_VAL;
-	
+
 	RET_VAL = value >> 8;
 	return(RET_VAL);
 }
 
-u8 u16_lo(u16 register value) {
+u8 u16_lo(register u16 value) {
 	register u8 RET_VAL;
-	
 
-	RET_VAL = (u8) value;
+	value = value << 8;
+	RET_VAL = value >> 8;
+
 	return(RET_VAL);
 }
 
@@ -148,6 +153,23 @@ long Error_Message(void)
 #if VERSION == 0
 int main(int argc, char *argv[])
 {
+
+
+/*	u64 t1 = 0x1122334455667788;
+	u32 t2 = 0x11223344;
+	u16 t3 = 0x1122;
+	
+
+	printf("HI : %lX\n", u64_hi(t1));
+	printf("LO : %lX\n", u64_lo(t1));
+
+	printf("HI : %lX\n", u32_hi(t2));
+	printf("LO : %lX\n", u32_lo(t2));
+
+	printf("HI : %lX\n", u16_hi(t3));
+	printf("LO : %lX\n", u16_lo(t3));
+	exit(0);
+*/
 
 	s64 YEAR = 0;
 	s64 DAY = 0;
