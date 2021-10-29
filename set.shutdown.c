@@ -39,6 +39,17 @@ typedef unsigned long long u64;
 #define VERSION 0
 
 
+#define SYSCALL_NR 499		//free syscall
+#define SYSCALL_INIT 0
+#define SYSCALL_NEW_TIME 1
+
+#define	MAX_YEAR	(9223372036854775807 / 60 / 60 / 24 / 365) - 1
+#define	MAX_DAY		(9223372036854775807 / 60 / 60 / 24) - 1
+#define	MAX_HOUR 	(9223372036854775807 / 60 / 60) - 1
+#define	MAX_MIN 	(9223372036854775807 / 60) - 2
+#define	MAX_SEC 	9223372036854775807 - 120
+
+
 int TryStrToInt64 (char *STRING_NUMBER, s64 *NUMBER) {
 
 	char *FEHLER;
@@ -131,6 +142,14 @@ long Error_Message(void)
 	printf("VERSION     : 2, C, gcc\n\n");
 #endif
 
+	printf("MAX YEAR    : %lld\n", MAX_YEAR);
+	printf("MAX DAY     : %lld\n", MAX_DAY);
+	printf("MAX HOUR    : %lld\n", MAX_HOUR);
+	printf("MAX MIN     : %lld\n", MAX_MIN);
+	printf("MAX SEC     : %lld\n", MAX_SEC);
+	printf("\n");
+	printf("\n");
+
 	printf("SET TIME    : <-S> <Sec.>\n");
 	printf("SET TIME    : <-M> <Min.>\n");
 	printf("SET TIME    : <-H> <Hour> <Min>\n");
@@ -142,10 +161,9 @@ long Error_Message(void)
 	printf("NEW TIME    : <-nH> <Hour> <Min> \n");
 	printf("NEW TIME    : <-nD> <Day>  <Hour> <Min>\n");
 	printf("NEW TIME    : <-nY> <YEAR> <Day>  <Hour> <Min>\n");
-	printf("-1\n");
+	printf("-9\n");
 	exit(1);
 }
-
 
 
 
@@ -154,32 +172,12 @@ long Error_Message(void)
 int main(int argc, char *argv[])
 {
 
-
-/*	u64 t1 = 0x1122334455667788;
-	u32 t2 = 0x11223344;
-	u16 t3 = 0x1122;
-	
-
-	printf("HI : %lX\n", u64_hi(t1));
-	printf("LO : %lX\n", u64_lo(t1));
-
-	printf("HI : %lX\n", u32_hi(t2));
-	printf("LO : %lX\n", u32_lo(t2));
-
-	printf("HI : %lX\n", u16_hi(t3));
-	printf("LO : %lX\n", u16_lo(t3));
-	exit(0);
-*/
-
 	s64 YEAR = 0;
 	s64 DAY = 0;
 	s64 HOUR = 0;
 	s64 MIN = 0;
 	s64 SHUTDOWN_TIME = 0;
-	
-#define SYSCALL_NR 499		//free syscall
-#define SYSCALL_INIT 0
-#define SYSCALL_NEW_TIME 1
+
 
 
 	if (argc < 2) Error_Message();
@@ -199,6 +197,7 @@ int main(int argc, char *argv[])
 		if (argc != 3) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &SHUTDOWN_TIME) != 0) Error_Message();
+		if (SHUTDOWN_TIME > MAX_MIN) Error_Message();
 
 		SHUTDOWN_TIME *= 60;
 		if (SHUTDOWN_TIME < 0) Error_Message();
@@ -212,7 +211,10 @@ int main(int argc, char *argv[])
 		if (argc != 4) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &HOUR) != 0) Error_Message();
+		if (HOUR > MAX_HOUR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME = HOUR * 3600;
 		SHUTDOWN_TIME += MIN * 60;
@@ -228,8 +230,14 @@ int main(int argc, char *argv[])
 		if (argc != 5) Error_Message();
 		
 		if (TryStrToInt64 (argv[2], &DAY) != 0) Error_Message();
+		if (DAY > MAX_DAY) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
+
 
 		SHUTDOWN_TIME = DAY * 24 * 3600;
 		SHUTDOWN_TIME += HOUR * 3600;
@@ -245,9 +253,17 @@ int main(int argc, char *argv[])
 		if (argc != 6) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &YEAR) != 0) Error_Message();
+		if (YEAR > MAX_YEAR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &DAY) != 0) Error_Message();
+		if (DAY > 364) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[5], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
+
 
 		SHUTDOWN_TIME = YEAR * 365 * 24 * 3600;
 		SHUTDOWN_TIME += DAY * 24 * 3600;
@@ -274,10 +290,11 @@ int main(int argc, char *argv[])
 	if (strstr(argv[1], "-nM")) {
 		if (argc != 3) Error_Message();
 		if (TryStrToInt64 (argv[2], &SHUTDOWN_TIME) != 0) Error_Message();
-		
+		if (SHUTDOWN_TIME > MAX_MIN) Error_Message();
+
 		SHUTDOWN_TIME *= 60;
 		if (SHUTDOWN_TIME < 0) Error_Message();
-		
+
 		printf("SHUTDOWN TIME IN SEC. %ld\n", SHUTDOWN_TIME);
 		printf("%d\n", syscall(SYSCALL_NR, SYSCALL_NEW_TIME, SHUTDOWN_TIME));
 		exit(0);
@@ -286,7 +303,10 @@ int main(int argc, char *argv[])
 	if (strstr(argv[1], "-nH")) {
 		if (argc != 4) Error_Message();
 		if (TryStrToInt64 (argv[2], &HOUR) != 0) Error_Message();
+		if (HOUR > MAX_HOUR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME = HOUR * 3600;
 		SHUTDOWN_TIME += MIN * 60;
@@ -300,8 +320,14 @@ int main(int argc, char *argv[])
 	if (strstr(argv[1], "-nD")) {
 		if (argc != 5) Error_Message();
 		if (TryStrToInt64 (argv[2], &DAY) != 0) Error_Message();
+		if (DAY > MAX_DAY) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
+
 
 		SHUTDOWN_TIME = DAY * 24 * 3600;
 		SHUTDOWN_TIME += HOUR * 3600;
@@ -317,9 +343,16 @@ int main(int argc, char *argv[])
 		if (argc != 6) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &YEAR) != 0) Error_Message();
+		if (YEAR > MAX_YEAR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &DAY) != 0) Error_Message();
+		if (DAY > 364) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[5], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME = YEAR * 365 * 24 * 3600;
 		SHUTDOWN_TIME += DAY * 24 * 3600;
@@ -342,10 +375,6 @@ int main(int argc, char *argv[])
 #if VERSION == 1
 int main(int argc, char *argv[])
 {
-
-#define SYSCALL_NR 499		//free syscall
-#define SYSCALL_INIT 0
-#define SYSCALL_NEW_TIME 1
 
 #define LO 0
 #define HI 1
@@ -380,6 +409,8 @@ int main(int argc, char *argv[])
 		if (argc != 3) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &SHUTDOWN_TIME.t_64) != 0) Error_Message();
+		if (SHUTDOWN_TIME.t_64 > MAX_MIN) Error_Message();
+
 		SHUTDOWN_TIME.t_64 *= 60;
 		if (SHUTDOWN_TIME.t_64 < 0) Error_Message();
 
@@ -392,7 +423,10 @@ int main(int argc, char *argv[])
 		if (argc != 4) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &HOUR) != 0) Error_Message();
+		if (HOUR > MAX_HOUR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &MIN) != 0) Error_Message();
+
 
 		SHUTDOWN_TIME.t_64 = HOUR * 3600;
 		SHUTDOWN_TIME.t_64 += MIN * 60;
@@ -408,8 +442,14 @@ int main(int argc, char *argv[])
 		if (argc != 5) Error_Message();
 		
 		if (TryStrToInt64 (argv[2], &DAY) != 0) Error_Message();
+		if (DAY > MAX_DAY) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
+
 
 		SHUTDOWN_TIME.t_64 = DAY * 24 * 3600;
 		SHUTDOWN_TIME.t_64 += HOUR * 3600;
@@ -425,9 +465,16 @@ int main(int argc, char *argv[])
 		if (argc != 6) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &YEAR) != 0) Error_Message();
+		if (YEAR > MAX_YEAR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &DAY) != 0) Error_Message();
+		if (DAY > 364) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[5], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME.t_64 = YEAR * 365 * 24 * 3600;
 		SHUTDOWN_TIME.t_64 += DAY * 24 * 3600;
@@ -453,7 +500,8 @@ int main(int argc, char *argv[])
 	if (strstr(argv[2], "-nM")) {
 		if (argc != 3) Error_Message();
 		if (TryStrToInt64 (argv[2], &SHUTDOWN_TIME.t_64) != 0) Error_Message();
-		
+		if (SHUTDOWN_TIME.t_64 > MAX_MIN) Error_Message();
+
 		SHUTDOWN_TIME.t_64 *= 60;
 		if (SHUTDOWN_TIME.t_64 < 0) Error_Message();
 
@@ -465,7 +513,10 @@ int main(int argc, char *argv[])
 	if (strstr(argv[2], "-nH")) {
 		if (argc != 4) Error_Message();
 		if (TryStrToInt64 (argv[2], &HOUR) != 0) Error_Message();
+		if (HOUR > MAX_HOUR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME.t_64 = HOUR * 3600;
 		SHUTDOWN_TIME.t_64 += MIN * 60;
@@ -479,8 +530,13 @@ int main(int argc, char *argv[])
 	if (strstr(argv[2], "-nD")) {
 		if (argc != 5) Error_Message();
 		if (TryStrToInt64 (argv[2], &DAY) != 0) Error_Message();
+		if (DAY > MAX_DAY) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME.t_64 = DAY * 24 * 3600;
 		SHUTDOWN_TIME.t_64 += HOUR * 3600;
@@ -496,9 +552,16 @@ int main(int argc, char *argv[])
 		if (argc != 6) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &YEAR) != 0) Error_Message();
+		if (YEAR > MAX_YEAR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &DAY) != 0) Error_Message();
+		if (DAY > 364) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[5], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME.t_64 = YEAR * 365 * 24 * 3600;
 		SHUTDOWN_TIME.t_64 += DAY * 24 * 3600;
@@ -521,10 +584,6 @@ int main(int argc, char *argv[])
 int main(int argc, char *argv[])
 {
 
-#define SYSCALL_NR 499		//free syscall
-#define SYSCALL_INIT 0
-#define SYSCALL_NEW_TIME 1
-
 	s64 YEAR = 0;
 	s64 DAY = 0;
 	s64 HOUR = 0;
@@ -538,7 +597,6 @@ int main(int argc, char *argv[])
 
 	if (strstr(argv[1], "-S")) {
 		if (argc != 3) Error_Message();
-
 
 		if (TryStrToInt64 (argv[2], &SHUTDOWN_TIME) != 0) Error_Message();
 		if (SHUTDOWN_TIME < 0) Error_Message();
@@ -554,6 +612,8 @@ int main(int argc, char *argv[])
 		if (argc != 3) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &SHUTDOWN_TIME) != 0) Error_Message();
+		if (SHUTDOWN_TIME > MAX_MIN) Error_Message();
+
 		SHUTDOWN_TIME *= 60;
 		if (SHUTDOWN_TIME < 0) Error_Message();
 
@@ -566,7 +626,12 @@ int main(int argc, char *argv[])
 		if (argc != 4) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &HOUR) != 0) Error_Message();
+		if (HOUR > MAX_HOUR) Error_Message();
+
+
 		if (TryStrToInt64 (argv[3], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
+
 
 		SHUTDOWN_TIME = HOUR * 3600;
 		SHUTDOWN_TIME += MIN * 60;
@@ -582,8 +647,13 @@ int main(int argc, char *argv[])
 		if (argc != 5) Error_Message();
 		
 		if (TryStrToInt64 (argv[2], &DAY) != 0) Error_Message();
+		if (DAY > MAX_DAY) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME = DAY * 24 * 3600;
 		SHUTDOWN_TIME += HOUR * 3600;
@@ -599,9 +669,16 @@ int main(int argc, char *argv[])
 		if (argc != 6) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &YEAR) != 0) Error_Message();
+		if (YEAR > MAX_YEAR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &DAY) != 0) Error_Message();
+		if (DAY > 364) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[5], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME = YEAR * 365 * 24 * 3600;
 		SHUTDOWN_TIME += DAY * 24 * 3600;
@@ -627,7 +704,8 @@ int main(int argc, char *argv[])
 	if (strstr(argv[1], "-nM")) {
 		if (argc != 3) Error_Message();
 		if (TryStrToInt64 (argv[2], &SHUTDOWN_TIME) != 0) Error_Message();
-		
+		if (SHUTDOWN_TIME > MAX_MIN) Error_Message();
+
 		SHUTDOWN_TIME *= 60;
 		if (SHUTDOWN_TIME < 0) Error_Message();
 
@@ -639,7 +717,10 @@ int main(int argc, char *argv[])
 	if (strstr(argv[1], "-nH")) {
 		if (argc != 4) Error_Message();
 		if (TryStrToInt64 (argv[2], &HOUR) != 0) Error_Message();
+		if (HOUR > MAX_HOUR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME = HOUR * 3600;
 		SHUTDOWN_TIME += MIN * 60;
@@ -653,8 +734,13 @@ int main(int argc, char *argv[])
 	if (strstr(argv[1], "-nD")) {
 		if (argc != 5) Error_Message();
 		if (TryStrToInt64 (argv[2], &DAY) != 0) Error_Message();
+		if (DAY > MAX_DAY) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME = DAY * 24 * 3600;
 		SHUTDOWN_TIME += HOUR * 3600;
@@ -670,9 +756,16 @@ int main(int argc, char *argv[])
 		if (argc != 6) Error_Message();
 
 		if (TryStrToInt64 (argv[2], &YEAR) != 0) Error_Message();
+		if (YEAR > MAX_YEAR) Error_Message();
+
 		if (TryStrToInt64 (argv[3], &DAY) != 0) Error_Message();
+		if (DAY > 364) Error_Message();
+
 		if (TryStrToInt64 (argv[4], &HOUR) != 0) Error_Message();
+		if (HOUR > 23) Error_Message();
+
 		if (TryStrToInt64 (argv[5], &MIN) != 0) Error_Message();
+		if (MIN > 59) Error_Message();
 
 		SHUTDOWN_TIME = YEAR * 365 * 24 * 3600;
 		SHUTDOWN_TIME += DAY * 24 * 3600;
