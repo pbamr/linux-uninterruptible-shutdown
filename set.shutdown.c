@@ -142,6 +142,7 @@ long Error_Message(void)
 	printf("VERSION     : 2, C, gcc\n\n");
 #endif
 
+	printf("IMPORTANT   : MAX TIME - REAL TIME\n"); 
 	printf("MAX YEAR    : %lld\n", MAX_YEAR);
 	printf("MAX DAY     : %lld\n", MAX_DAY);
 	printf("MAX HOUR    : %lld\n", MAX_HOUR);
