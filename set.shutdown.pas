@@ -61,6 +61,7 @@ begin
 {$endif VERSION_0}
 
 	writeln;
+	writeln('IMPORTANT   : TIME = MAX TIME - REAL TIME');
 	writeln('MAX YEAR    : ', MAX_YEAR);
 	writeln('MAX DAY     : ', MAX_DAY);
 	writeln('MAX HOUR    : ', MAX_HOUR);
