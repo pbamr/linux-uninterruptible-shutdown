@@ -25,7 +25,7 @@
 #include <linux/seq_file.h>
 
 
-/* def. */
+/* proto. */
 struct shutdown_timer_info_struct {
 	s64 shutdown_time_sec;
 	s64 shutdown_unix_epoch_time_sec;
