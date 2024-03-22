@@ -73,6 +73,9 @@ struct shutdown_timer_info_struct {
 };
 
 
+extern void info_shutdown_timer(struct shutdown_timer_info_struct *info);
+
+
 static struct mutex shutdown_lock;
 static struct task_struct *kt_shutdown;
 
