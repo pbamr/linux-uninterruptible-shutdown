@@ -28,9 +28,9 @@
 /* proto. */
 struct shutdown_timer_info_struct {
 	s64 shutdown_time_sec;
-	s64 shutdown_unix_epoch_time_sec;
 	bool shutdown_flag;
 };
+
 
 static struct shutdown_timer_info_struct info;
 
@@ -121,21 +121,20 @@ static int shutdown_timer_proc_show(struct seq_file *proc_show, void *v)
 
 	if (info.shutdown_flag == true) {
 		seq_printf(proc_show,
-			"SHUTDOWN TIMER           : ACTIVE\n");
+			"SHUTDOWN TIMER           : ACTIVE. TIME BASE 5 SEC.\n");
 
 		seq_printf(proc_show,
-			"SHUTDOWN TIMER COUNTER   : %lld YEARS %lld DAYS %lld:%lld HOURS, %lld SEC.\n",
+			"SHUTDOWN TIMER           : %lld YEARS, %lld DAYS, %lld:%lld HOURS\n",
 			shutdown_time_years(),
 			shutdown_time_days_modulo(),
 			shutdown_time_hours_modulo(),
-			shutdown_time_min_modulo(),
-			info.shutdown_time_sec);
+			shutdown_time_min_modulo());
 
 		seq_printf(proc_show,
-			"SHUTDOWN UNIX EPOCH TIME : %lld SEC., %lld SEC.\n\n",
-			info.shutdown_unix_epoch_time_sec,
-			info.shutdown_unix_epoch_time_sec - ktime_get_real_seconds());
-	} else {
+			"SHUTDOWN TIMER           : %lld SEC.\n", info.shutdown_time_sec);
+
+	}
+	else {
 		seq_printf(proc_show,
 			"SHUTDOWN TIMER           : NOT ACTIVE\n\n");
 	}

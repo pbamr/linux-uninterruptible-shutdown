@@ -1,5 +1,5 @@
-/* Copyright (c) 2021/08/28, Peter Boettcher, Germany/NRW, Muelheim Ruhr, mail:peter.boettcher@gmx.net
- * Urheber: 2021.08.28, Peter Boettcher, Germany/NRW, Muelheim Ruhr, mail:peter.boettcher@gmx.net
+/* Copyright (c) 2021/08/28,2024.06.20, Peter Boettcher, Germany/NRW, Muelheim Ruhr, mail:peter.boettcher@gmx.net
+ * Urheber: 2021.08.28, 2024.06.20, Peter Boettcher, Germany/NRW, Muelheim Ruhr, mail:peter.boettcher@gmx.net
 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,10 +15,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
  /* shutdown timer uninterruptible!
-  * You can not stop this timer! I think so.
+  * You can not stop this timer! I think
   * kill/gdb does not work
   *
   * SHUTDOWN TIME can only be set by ROOT
@@ -31,21 +29,15 @@
   *                                x86/32BIT
   *                                Other not tested
   *
-  *
   * Important: Shutdown Time = SECONDS (signed)
   *
   * 64BIT:
   *        signed 64BIT UNIX EPOCH TIME + signed 64BIT SHUTDONW_TIME. This is very, very FAR in the FUTURE.
   *
   * 32 BIT:
-  *       signed 64BIT UNIX EPOCH TIME + signed 64BIT SHUTDOWN TIME. This is very, very FAR in the FUTURE.
-  *
+  *       signed 64BIT UNIX EPOCH TIME + signed 32BIT SHUTDOWN TIME. This is max 32BIT signed in the future (68 Years).
   *
   * Time is not setting, if signed UNIX EPOCH TIME + signed SHUTDOWN TIME is negative. That is longer than life on earth will exist!
-  *
-  *
-  * You have to consider then BYTE ORDER
-  *
   *
   * Important:
   *              32BIT Long=32BIT
@@ -68,23 +60,14 @@
 /* proto. */
 struct shutdown_timer_info_struct {
 	s64 shutdown_time_sec;
-	s64 shutdown_unix_epoch_time_sec;
 	bool shutdown_flag;
 };
 
-
+static DEFINE_MUTEX(shutdown_lock);
 void info_shutdown_timer(struct shutdown_timer_info_struct *info);
-
-
-static struct mutex shutdown_lock;
 static struct task_struct *kt_shutdown;
-
 static bool shutdown_flag = false;
-
-
-/* This is the important "Counter" */
 static s64 shutdown_time_sec = 0;
-static s64 shutdown_unix_epoch_time_sec = 0;
 
 
 
@@ -92,7 +75,6 @@ static s64 shutdown_unix_epoch_time_sec = 0;
 void info_shutdown_timer(struct shutdown_timer_info_struct *info)
 {
 	info->shutdown_time_sec = shutdown_time_sec;
-	info->shutdown_unix_epoch_time_sec = shutdown_unix_epoch_time_sec;
 	info->shutdown_flag = shutdown_flag;
 }
 
@@ -113,7 +95,6 @@ static s64 shutdown_time_days_modulo(void)
 #endif
 
 }
-
 
 static s64 shutdown_time_years(void)
 {
@@ -203,11 +184,6 @@ static void printk_stat_shutdown_timer(void)
 		shutdown_time_hours_modulo(),
 		shutdown_time_min_modulo(),
 		shutdown_time_sec);
-		
-	printk("SHUTDOWN UNIX EPOCH TIME : %lld Sec, %lld Sec.\n\n",
-		shutdown_unix_epoch_time_sec,
-		shutdown_unix_epoch_time_sec - ktime_get_real_seconds());
-
 #endif
 
 }
@@ -217,7 +193,7 @@ static void printk_error_shutdown_timer(void)
 {
 
 #ifdef PRINTK
-	printk("SHUTDOWN TIMER           : ERROR\n\n"); 
+	printk("SHUTDOWN TIMER           : ERROR, TIME NOT ALLOWED\n\n"); 
 #endif
 
 }
@@ -242,37 +218,30 @@ static int shutdown_timer(void *data)
 {
 
 	s64 diff_time_sec;
-	s64 unix_epoch_time_sec;
+	s64 unix_epoch_time_sec = ktime_get_real_seconds();
 
-	while(1) {
-		/* 1 sec.*/
-		ssleep(1);
+
+	for (;;) {
+		/* 5 sec.*/
+		ssleep(5);
 
 		mutex_lock(&shutdown_lock);
 
-		shutdown_time_sec -= 1;
+		diff_time_sec = ktime_get_real_seconds() - unix_epoch_time_sec;
 
-		unix_epoch_time_sec = ktime_get_real_seconds();
+		/* if: change real seconds */
+		/* else: system suspend, hibernate etc */
+		if (diff_time_sec < 5)
+			shutdown_time_sec -= 5;
+		else shutdown_time_sec -= diff_time_sec;
 
-		/* Shutdown/Halt? */
-		if (unix_epoch_time_sec >= shutdown_unix_epoch_time_sec) {
-			mutex_unlock(&shutdown_lock);
-			break;
-		}
-
-		/* Shutdown/Halt? This is the important "Counter" */
+		/* Shutdown or Halt */
 		if (shutdown_time_sec <= 0) {
 			mutex_unlock(&shutdown_lock);
 			break;
 		}
 
-		 /* shutdown time counter. check and correct after sleep/adjusting etc.. Future OS SYSTEM TIME */
-		diff_time_sec = shutdown_unix_epoch_time_sec - unix_epoch_time_sec;
-		if (diff_time_sec < shutdown_time_sec) shutdown_time_sec = diff_time_sec;
-
-		/* Check and correct shutdown time after adjusting. After set OS SYSTEM TIME in the past */
-		if (diff_time_sec > shutdown_time_sec)
-			shutdown_unix_epoch_time_sec = unix_epoch_time_sec + shutdown_time_sec;
+		unix_epoch_time_sec = ktime_get_real_seconds();
 
 		mutex_unlock(&shutdown_lock);
 	}
@@ -304,6 +273,7 @@ static long init_shutdown_timer(s64 halt_time_sec)
 	}
 
 	shutdown_flag = true;
+
 	/* check value. Not lower 60 */
 	if (halt_time_sec < 60) {
 		printk_error_shutdown_timer();
@@ -311,7 +281,7 @@ static long init_shutdown_timer(s64 halt_time_sec)
 		return(-1);
 	}
 
-	/* Overflow. if ktime.. + halt_time_sec <) 0 not OK! Very, Very Far in the Future */
+	/* Overflow. if ktime.. + halt_time_sec <) 0 not OK! Very, Very Far in the Future .... */
 	if ((s64) (ktime_get_real_seconds() + halt_time_sec) <= 0) {
 		printk_error_shutdown_timer();
 		shutdown_flag = false;
@@ -321,18 +291,12 @@ static long init_shutdown_timer(s64 halt_time_sec)
 	/* ---Is only entered once--- */
 	shutdown_time_sec = halt_time_sec;
 
-	shutdown_unix_epoch_time_sec = ktime_get_real_seconds() + halt_time_sec;
-
 	/* info */
 	printk_ok_shutdown_timer();
 	printk_stat_shutdown_timer();
 
-	/* important */
-	mutex_init(&shutdown_lock);
-
 	/* create worker thread */
 	kt_shutdown = kthread_create (shutdown_timer, NULL, "shutdown/timer");
-
 	wake_up_process(kt_shutdown);
 
 	return(0);
@@ -358,12 +322,7 @@ static long set_shutdown_timer(s64 halt_time_sec)
 	/* new time lower than remaining time? */
 	if (halt_time_sec < shutdown_time_sec) {
 
-		mutex_lock(&shutdown_lock);
-
 		shutdown_time_sec = halt_time_sec;
-		shutdown_unix_epoch_time_sec =  ktime_get_real_seconds() + halt_time_sec;
-
-		mutex_unlock(&shutdown_lock);
 
 		printk_ok_shutdown_timer();
 		printk_stat_shutdown_timer();
@@ -377,7 +336,6 @@ static long set_shutdown_timer(s64 halt_time_sec)
 	return(-1);
 	
 }
-
 
 SYSCALL_DEFINE3(shutdown_timer, long, function_number, s32, lo_halt_time_sec, s32, hi_halt_time_sec)
 {
@@ -400,6 +358,9 @@ SYSCALL_DEFINE3(shutdown_timer, long, function_number, s32, lo_halt_time_sec, s3
 		s32 t_32[2];
 	} halt_time_sec;
 
+	long error = 0;
+
+
 	/* simple */
 	/* ID check. ONLY USER ID 0 */
 	if (get_current_user()->uid.val != 0) {
@@ -412,13 +373,21 @@ SYSCALL_DEFINE3(shutdown_timer, long, function_number, s32, lo_halt_time_sec, s3
 		case 0:
 			halt_time_sec.t_32[LO] = lo_halt_time_sec;
 			halt_time_sec.t_32[HI] = hi_halt_time_sec;
-			return(init_shutdown_timer(halt_time_sec.t_64));
+
+			mutex_lock(&shutdown_lock);
+			error = init_shutdown_timer(halt_time_sec.t_64);
+			mutex_unlock(&shutdown_lock);
+			return(error);
 
 		/* shutdown. new time set. only lower than remaining time */
 		case 1:
 			halt_time_sec.t_32[LO] = lo_halt_time_sec;
 			halt_time_sec.t_32[HI] = hi_halt_time_sec;
-			return(set_shutdown_timer(halt_time_sec.t_64));
+
+			mutex_lock(&shutdown_lock);
+			error = set_shutdown_timer(halt_time_sec.t_64);
+			mutex_unlock(&shutdown_lock);
+			return(error);
 
 		/* if not OK */
 		default:
